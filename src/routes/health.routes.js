@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { healthz_routes, readyz_routes } from "./routes.js";
+import { healthz_routes, readyz_routes } from "./healthHandler.routes.js";
 
 const router = Router();
 
