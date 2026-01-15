@@ -1,40 +1,27 @@
 import { Router } from "express";
-import { auth, requireRole } from "../middlewares/auth.middlewares.js";
 import {
   createBooking,
   getMyBookings,
   getAllBookings,
   updateBookingStatus,
   cancelMyBooking,
+  getDashboardStats,
+  getMyBookingStats,
 } from "../controllers/booking.controller.js";
+import { auth, requireRole } from "../middlewares/auth.middlewares.js";
 
 const router = Router();
 
-// all booking routes require auth
 router.use(auth);
 
-// student / faculty / admin → can create and view own bookings
-router.post(
-  "/",
-  requireRole("student", "faculty", "admin"),
-  createBooking
-);
-
-router.get("/my", getMyBookings);
-
+// User routes
+router.post("/", createBooking);
+router.get("/my-bookings", getMyBookings);
+router.get("/my-stats", getMyBookingStats);
 router.patch("/:id/cancel", cancelMyBooking);
 
-// admin-only routes
-router.get(
-  "/",
-  requireRole("admin"),
-  getAllBookings
-);
-
-router.patch(
-  "/:id/status",
-  requireRole("admin"),
-  updateBookingStatus
-);
-
+// Admin routes
+router.get("/all", requireRole("admin"), getAllBookings);
+router.get("/dashboard", requireRole("admin"), getDashboardStats);
+router.patch("/:id/status", requireRole("admin"), updateBookingStatus);
 export const bookings =  router;

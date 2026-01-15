@@ -1,6 +1,6 @@
 import { Booking } from "../models/bookings.model.js";
 import { Room } from "../models/rooms.model.js";
-import { asyncHandler } from "../utils/asyncHandler.js";
+import { asyncHandler } from "../utils/AsyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
@@ -166,4 +166,147 @@ export const cancelMyBooking = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, booking, "Booking cancelled"));
+});
+
+
+// --- Dashboard Stats (Admin) ---
+export const getDashboardStats = asyncHandler(async (req, res) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const startOfWeek = new Date(today);
+  startOfWeek.setDate(today.getDate() - today.getDay());
+
+  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+  // Booking counts by status
+  const statusCounts = await Booking.aggregate([
+    {
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  // Today's bookings
+  const todayBookings = await Booking.countDocuments({
+    startTime: { $gte: today },
+    startTime: { $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+  });
+
+  // This week's bookings
+  const weekBookings = await Booking.countDocuments({
+    startTime: { $gte: startOfWeek },
+  });
+
+  // This month's bookings
+  const monthBookings = await Booking.countDocuments({
+    startTime: { $gte: startOfMonth },
+  });
+
+  // Most booked rooms (top 5)
+  const topRooms = await Booking.aggregate([
+    { $match: { resourceType: "Room" } },
+    {
+      $group: {
+        _id: "$resourceId",
+        totalBookings: { $sum: 1 },
+      },
+    },
+    { $sort: { totalBookings: -1 } },
+    { $limit: 5 },
+    {
+      $lookup: {
+        from: "rooms",
+        localField: "_id",
+        foreignField: "_id",
+        as: "room",
+      },
+    },
+    { $unwind: "$room" },
+    {
+      $project: {
+        _id: 0,
+        roomId: "$_id",
+        roomName: "$room.name",
+        location: "$room.location",
+        totalBookings: 1,
+      },
+    },
+  ]);
+
+  // Peak hours (group by hour)
+  const peakHours = await Booking.aggregate([
+    {
+      $group: {
+        _id: { $hour: "$startTime" },
+        count: { $sum: 1 },
+      },
+    },
+    { $sort: { count: -1 } },
+    { $limit: 5 },
+    {
+      $project: {
+        _id: 0,
+        hour: "$_id",
+        bookings: "$count",
+      },
+    },
+  ]);
+
+  // Format status counts
+  const statusSummary = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    cancelled: 0,
+  };
+  statusCounts.forEach((s) => {
+    statusSummary[s._id] = s.count;
+  });
+
+  return res.status(200).json(
+    new ApiResponse(200, {
+      overview: {
+        today: todayBookings,
+        thisWeek: weekBookings,
+        thisMonth: monthBookings,
+        total: Object.values(statusSummary).reduce((a, b) => a + b, 0),
+      },
+      statusSummary,
+      topRooms,
+      peakHours,
+    }, "Dashboard stats fetched")
+  );
+});
+
+// --- User's own booking stats ---
+export const getMyBookingStats = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const stats = await Booking.aggregate([
+    { $match: { user: userId } },
+    {
+      $group: {
+        _id: "$status",
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const summary = {
+    pending: 0,
+    approved: 0,
+    rejected: 0,
+    cancelled: 0,
+    total: 0,
+  };
+
+  stats.forEach((s) => {
+    summary[s._id] = s.count;
+    summary.total += s.count;
+  });
+
+  return res.status(200).json(new ApiResponse(200, summary, "My booking stats fetched"));
 });

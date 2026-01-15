@@ -12,6 +12,7 @@ const roomSchema = new Schema(
       type: String,
       enum: ["classroom", "lab", "other"],
       default: "classroom",
+      lowercase:true
     },
     capacity: {
       type: Number,
@@ -22,6 +23,7 @@ const roomSchema = new Schema(
       type: [String],
       enum: ["projector" , "ac"], // ["projector", "ac", "whiteboard"]
       default: [],
+      lowercase:true
     },
     location: {
       type: String,

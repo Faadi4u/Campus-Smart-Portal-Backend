@@ -10,7 +10,7 @@ export const createRoom = asyncHandler(async (req, res) => {
     throw new ApiError(400, "name , capacity and location are required");
   }
 
-  const exists = Room.findOne({ name });
+  const exists =await  Room.findOne({ name });
   if (exists) {
     throw new ApiError(409, `Room with name: ${name} already exists`);
   }
