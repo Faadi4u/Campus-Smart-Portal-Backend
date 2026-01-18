@@ -71,6 +71,11 @@ Server runs at: `http://localhost:3000`
     - `GET  /api/v1/bookings/my-bookings` – list own bookings
     - `GET  /api/v1/bookings/my-stats` – simple stats (pending/approved/rejected/cancelled/total)
     - `PATCH /api/v1/bookings/:id/cancel` – cancel own pending/approved booking
+
+  - Calendar & Availability:
+    - `PATCH /api/v1/bookings/calendar` – to maek calendar booking
+    - `PATCH /api/v1/bookings/availability` – checking availability of rooms for booking
+    
   - Admin routes (auth + admin role):
     - `GET  /api/v1/bookings/all` – list all bookings
     - `PATCH /api/v1/bookings/:id/status` – approve/reject a booking
@@ -118,6 +123,8 @@ Create a `.env` file in the project root (do not commit it):
 - POST http://localhost:3000/api/v1/bookings (student/faculty)
 - GET http://localhost:3000/api/v1/bookings/my-bookings
 - GET http://localhost:3000/api/v1/bookings/my-stats
+- GET http://localhost:3000/api/v1/bookings/calendar
+- GET http://localhost:3000/api/v1/bookings/availability
 - GET http://localhost:3000/api/v1/bookings/all (admin)
 - GET http://localhost:3000/api/v1/bookings/search (admin)
 - GET http://localhost:3000/api/v1/bookings/dashboard (admin)
