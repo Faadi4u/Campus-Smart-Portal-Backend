@@ -3,6 +3,7 @@ import { Room } from "../models/rooms.model.js";
 import { asyncHandler } from "../utils/AsyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 // Helper: check overlapping bookings
 // Overlap if: newStart < existingEnd AND newEnd > existingStart
@@ -102,40 +103,47 @@ export const getAllBookings = asyncHandler(async (req, res) => {
 // PATCH /api/v1/bookings/:id/status
 // admin: approve/reject/cancel booking
 export const updateBookingStatus = asyncHandler(async (req, res) => {
-  const { id } = req.params;
   const { status, adminComment } = req.body;
+  const { id } = req.params;
 
-  if (!["approved", "rejected", "cancelled"].includes(status)) {
+  if (!["approved", "rejected"].includes(status)) {
     throw new ApiError(400, "Invalid status");
   }
 
-  const booking = await Booking.findById(id);
+  // Populate 'user' to get the email address
+  const booking = await Booking.findById(id).populate("user", "fullName email");
+
   if (!booking) {
     throw new ApiError(404, "Booking not found");
   }
 
-  // If approving, re-check conflicts for safety
-  if (status === "approved") {
-    const conflict = await hasConflict(
-      booking.room,
-      booking.startTime,
-      booking.endTime,
-      booking._id
-    );
-    if (conflict) {
-      throw new ApiError(
-        409,
-        "Cannot approve. Room is already booked in this time slot."
-      );
-    }
-  }
-
+  // Update logic
   booking.status = status;
-  if (adminComment !== undefined) {
-    booking.adminComment = adminComment;
-  }
-
+  if (adminComment) booking.adminComment = adminComment;
   await booking.save();
+
+  // --- EMAIL NOTIFICATION LOGIC ---
+  if (booking.user && booking.user.email) {
+    const subject = `Booking Update: ${status.toUpperCase()}`;
+    
+    let message = `
+      <h3>Hello ${booking.user.fullName},</h3>
+      <p>Your booking request has been <strong>${status}</strong>.</p>
+    `;
+
+    if (status === "approved") {
+      message += `<p style="color: green;">✅ <strong>Approved!</strong> Please arrive on time.</p>`;
+    } else {
+      message += `<p style="color: red;">❌ <strong>Rejected.</strong></p>`;
+      message += `<p><strong>Reason:</strong> ${adminComment || "Administrative decision"}</p>`;
+    }
+
+    message += `<p>Date: ${new Date(booking.startTime).toLocaleDateString()}</p>`;
+    
+    // Send email (no await, so it doesn't slow down response)
+    sendEmail(booking.user.email, subject, message);
+  }
+  // -------------------------------
 
   return res
     .status(200)
