@@ -83,6 +83,10 @@ Server runs at: `http://localhost:3000`
     - `GET  /api/v1/bookings/dashboard` – dashboard stats (overview + status summary, etc.)
     - `GET  /api/v1/bookings/search` – Search all bookings
 
+- ✅ **Advanced Features**
+  - Calendar API: Formatted data for frontend calendar views.
+  - Availability Check: Check specific room slots.
+  - Email Notifications: Automated emails via Nodemailer when booking status changes.
 ---
 
 ## Environment variables
@@ -97,6 +101,10 @@ Create a `.env` file in the project root (do not commit it):
 - ACCESS_TOKEN_EXPIRY=15m
 - REFRESH_TOKEN_SECRET=yourSecret
 - REFRESH_TOKEN_EXPIRY=14d
+- SMTP_HOST=smtp.gmail.com
+- SMTP_PORT=587
+- SMTP_USER=your-email@gmail.com
+- SMTP_PASS=xxxx xxxx xxxx xxxx  # The 16-digit App Password
 
 ---
 
@@ -120,11 +128,14 @@ Create a `.env` file in the project root (do not commit it):
 - POST http://localhost:3000/api/v1/rooms/search (search active rooms)
 
 ### Bookings
-- POST http://localhost:3000/api/v1/bookings (student/faculty)
-- GET http://localhost:3000/api/v1/bookings/my-bookings
-- GET http://localhost:3000/api/v1/bookings/my-stats
-- GET http://localhost:3000/api/v1/bookings/calendar
-- GET http://localhost:3000/api/v1/bookings/availability
-- GET http://localhost:3000/api/v1/bookings/all (admin)
-- GET http://localhost:3000/api/v1/bookings/search (admin)
-- GET http://localhost:3000/api/v1/bookings/dashboard (admin)
+- POST http://localhost:3000/api/v1/booking (student/faculty)
+- GET http://localhost:3000/api/v1/booking/my-bookings
+- GET http://localhost:3000/api/v1/booking/my-stats
+- GET http://localhost:3000/api/v1/booking/calendar
+- GET http://localhost:3000/api/v1/booking/availability
+
+### Admin Operations 
+- GET http://localhost:3000/api/v1/booking/all 
+- GET http://localhost:3000/api/v1/booking/search 
+- GET http://localhost:3000/api/v1/booking/dashboard 
+- GET http://localhost:3000/api/v1/booking/:id/status  (Triggers Email)
