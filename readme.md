@@ -83,6 +83,10 @@ Server runs at: `http://localhost:3000`
     - `GET  /api/v1/bookings/dashboard` – dashboard stats (overview + status summary, etc.)
     - `GET  /api/v1/bookings/search` – Search all bookings
 
+  - Update Password , UserName and Email:
+    - `router.route("/update-account").patch(auth, updateAccountDetails)`
+    - `router.route("/change-password").patch(auth, changeCurrentPassword)`
+
 - ✅ **Advanced Features**
   - Calendar API: Formatted data for frontend calendar views.
   - Availability Check: Check specific room slots.
@@ -139,3 +143,7 @@ Create a `.env` file in the project root (do not commit it):
 - GET http://localhost:3000/api/v1/booking/search 
 - GET http://localhost:3000/api/v1/booking/dashboard 
 - GET http://localhost:3000/api/v1/booking/:id/status  (Triggers Email)
+
+### Update Profile
+- GET http://localhost:3000/api/v1/update-account
+- GET http://localhost:3000/api/v1/change-password
