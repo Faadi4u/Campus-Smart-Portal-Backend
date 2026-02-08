@@ -83,9 +83,10 @@ Server runs at: `http://localhost:3000`
     - `GET  /api/v1/bookings/dashboard` – dashboard stats (overview + status summary, etc.)
     - `GET  /api/v1/bookings/search` – Search all bookings
 
-  - Update Password , UserName and Email:
+  - Update Password , UserName and Email , Delete Account :
     - `router.route("/update-account").patch(auth, updateAccountDetails)`
     - `router.route("/change-password").patch(auth, changeCurrentPassword)`
+    - `router.route("/delete-account").delete(auth, deleteAccount);`
 
 - ✅ **Advanced Features**
   - Calendar API: Formatted data for frontend calendar views.
@@ -147,3 +148,5 @@ Create a `.env` file in the project root (do not commit it):
 ### Update Profile
 - GET http://localhost:3000/api/v1/update-account
 - GET http://localhost:3000/api/v1/change-password
+- GET http://localhost:3000/api/v1/delete-account
+
