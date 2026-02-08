@@ -163,3 +163,21 @@ export const changeCurrentPassword = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, {}, "Password changed successfully"));
 });
+
+// --- Delete User Account ---
+export const deleteAccount = asyncHandler(async (req, res) => {
+  // 1. Find and delete the user
+  // req.user._id comes from your auth middleware
+  const user = await User.findByIdAndDelete(req.user?._id);
+
+  if (!user) {
+    throw new ApiError(404, "User not found");
+  }
+
+  // Optional: You might want to delete all bookings made by this user too
+  // await Booking.deleteMany({ user: req.user._id });
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Account deleted successfully"));
+});
