@@ -63,9 +63,9 @@ const userSchema = new Schema(
 
     // Contact / misc
 
-    avatarUrl: {
-      type: String,
-      trim: true,
+    avatar: {
+    type: String, // Cloudinary URL
+    default: "",
     },
 
     isActive: {

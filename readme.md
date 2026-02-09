@@ -83,15 +83,24 @@ Server runs at: `http://localhost:3000`
     - `GET  /api/v1/bookings/dashboard` – dashboard stats (overview + status summary, etc.)
     - `GET  /api/v1/bookings/search` – Search all bookings
 
+
+- ✅ **Advanced Features**
+
+  - Calendar API: Formatted data for frontend calendar views.
+
+  - Availability Check: Check specific room slots.
+
+  - Email Notifications: Automated emails via Nodemailer when booking status changes.
+
   - Update Password , UserName and Email , Delete Account :
     - `router.route("/update-account").patch(auth, updateAccountDetails)`
     - `router.route("/change-password").patch(auth, changeCurrentPassword)`
-    - `router.route("/delete-account").delete(auth, deleteAccount);`
+    - `router.route("/delete-account").delete(auth, deleteAccount)`
 
-- ✅ **Advanced Features**
-  - Calendar API: Formatted data for frontend calendar views.
-  - Availability Check: Check specific room slots.
-  - Email Notifications: Automated emails via Nodemailer when booking status changes.
+  - Update Avatar and Remove Avatar:
+    - `router.route("/update-avatar").patch(auth, upload.single("avatar"), updateAvatar)`
+    - `router.route("/remove-avatar").patch(auth, removeAvatar)`
+
 ---
 
 ## Environment variables
@@ -146,7 +155,10 @@ Create a `.env` file in the project root (do not commit it):
 - GET http://localhost:3000/api/v1/booking/:id/status  (Triggers Email)
 
 ### Update Profile
-- GET http://localhost:3000/api/v1/update-account
-- GET http://localhost:3000/api/v1/change-password
-- GET http://localhost:3000/api/v1/delete-account
+- PATCH http://localhost:3000/api/v1/update-account
+- PATCH http://localhost:3000/api/v1/change-password
+- DELETE http://localhost:3000/api/v1/delete-account
+- PATCH http://localhost:3000/api/v1/update-avatar
+- PATCH http://localhost:3000/api/v1/remove-avatar
+- 
 
