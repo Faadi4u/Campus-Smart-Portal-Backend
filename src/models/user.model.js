@@ -72,19 +72,26 @@ const userSchema = new Schema(
       type: Boolean,
       default: true,
     },
+
+    forgotPasswordToken: String,
+    forgotPasswordTokenExpiry: Date,
+
   },
   { timestamps: true }
 );
 
-userSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+userSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
+
   this.password = await bcrypt.hash(this.password, SALT_ROUNDS);
-  
+  // No next() needed here when using async
 });
 
 userSchema.methods.isPasswordCorrect = async function (password) {
   return bcrypt.compare(password, this.password);
 };
+
+
 
 userSchema.methods.generateAccessToken = function () {
   return jwt.sign(

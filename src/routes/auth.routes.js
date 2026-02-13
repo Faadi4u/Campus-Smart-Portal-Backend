@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { loginUser , signupUser , getCurrentUser , updateAccountDetails , changeCurrentPassword , deleteAccount , updateAvatar , removeAvatar} from "../controllers/auth.controller.js";
+import { loginUser , signupUser , getCurrentUser , updateAccountDetails , changeCurrentPassword , deleteAccount , updateAvatar , removeAvatar , forgotPassword , resetPassword} from "../controllers/auth.controller.js";
 import { auth } from "../middlewares/auth.middlewares.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -21,5 +21,9 @@ router.route("/delete-account").delete(auth, deleteAccount);
 router.route("/update-avatar").patch(auth, upload.single("avatar"), updateAvatar);
 
 router.route("/remove-avatar").patch(auth, removeAvatar); // Note: using PATCH since we update user
+
+router.route("/forgot-password").post(forgotPassword);
+
+router.route("/reset-password/:token").post(resetPassword);
 
 export const authRoutes = router;

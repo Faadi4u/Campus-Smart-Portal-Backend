@@ -1,8 +1,10 @@
+import crypto from "crypto";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/AsyncHandler.js"; 
 import { ApiError } from "../utils/ApiError.js";      
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { sendEmail } from "../utils/sendEmail.js";
 
 // LOGIN (signin)
 const loginUser = async (req, res, next) => {
@@ -224,4 +226,66 @@ export const removeAvatar = asyncHandler(async (req, res) => {
   ).select("-password");
 
   return res.status(200).json(new ApiResponse(200, user, "Avatar removed"));
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    throw new ApiError(404, "User with this email does not exist");
+  }
+
+  // Generate a random token
+  const resetToken = crypto.randomBytes(20).toString("hex");
+
+  // Save hashed token and expiry (20 minutes) to DB
+  user.forgotPasswordToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+  user.forgotPasswordTokenExpiry = Date.now() + 20 * 60 * 1000;
+  await user.save({ validateBeforeSave: false });
+
+  // Create reset URL
+  const resetUrl = `${process.env.CORS_ORIGIN}/reset-password/${resetToken}`;
+
+  const message = `
+    <h2>Password Reset Request</h2>
+    <p>You requested to reset your password. Click the link below to set a new one. This link expires in 20 minutes.</p>
+    <a href="${resetUrl}" style="background: #4f46e5; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Reset Password</a>
+    <p>If you didn't request this, please ignore this email.</p>
+  `;
+
+  try {
+    await sendEmail(user.email, "Password Reset Request", message);
+    return res.status(200).json(new ApiResponse(200, {}, "Reset link sent to email"));
+  } catch (error) {
+    user.forgotPasswordToken = undefined;
+    user.forgotPasswordTokenExpiry = undefined;
+    await user.save({ validateBeforeSave: false });
+    throw new ApiError(500, "Error sending email. Try again later.");
+  }
+});
+
+// 2. RESET PASSWORD (Set New Password)
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  const user = await User.findOne({
+    forgotPasswordToken: hashedToken,
+    forgotPasswordTokenExpiry: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(400, "Token is invalid or has expired");
+  }
+
+  // Set new password (the model pre-save hook will hash it)
+  user.password = password;
+  user.forgotPasswordToken = undefined;
+  user.forgotPasswordTokenExpiry = undefined;
+  await user.save();
+
+  return res.status(200).json(new ApiResponse(200, {}, "Password reset successfully"));
 });

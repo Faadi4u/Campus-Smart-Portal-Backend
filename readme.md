@@ -92,6 +92,8 @@ Server runs at: `http://localhost:3000`
 
   - Email Notifications: Automated emails via Nodemailer when booking status changes.
 
+  - Email Reset: Link send to user email to forget password
+
   - Update Password , UserName and Email , Delete Account :
     - `router.route("/update-account").patch(auth, updateAccountDetails)`
     - `router.route("/change-password").patch(auth, changeCurrentPassword)`
@@ -100,6 +102,10 @@ Server runs at: `http://localhost:3000`
   - Update Avatar and Remove Avatar:
     - `router.route("/update-avatar").patch(auth, upload.single("avatar"), updateAvatar)`
     - `router.route("/remove-avatar").patch(auth, removeAvatar)`
+
+  - Reset Password and update:
+    - `router.route("/forgot-password").post(forgotPassword)`
+    - `router.route("/reset-password/:token").post(resetPassword);`
 
 ---
 
@@ -160,5 +166,9 @@ Create a `.env` file in the project root (do not commit it):
 - DELETE http://localhost:3000/api/v1/delete-account
 - PATCH http://localhost:3000/api/v1/update-avatar
 - PATCH http://localhost:3000/api/v1/remove-avatar
+
+### Reset Password
+- POST http://localhost:3000/api/v1//forgot-password
+- POST http://localhost:3000/api/v1//reset-password/:token
 - 
 
