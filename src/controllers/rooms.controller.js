@@ -4,7 +4,7 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 export const createRoom = asyncHandler(async (req, res) => {
-  const { name, type, capacity, features, location } = req.body;
+  const { name, type, capacity, features, location , hasProjector } = req.body;
 
   if (!name || !capacity || !location) {
     throw new ApiError(400, "name , capacity and location are required");
@@ -21,6 +21,7 @@ export const createRoom = asyncHandler(async (req, res) => {
     capacity,
     features,
     location,
+    hasProjector: hasProjector || false,
   });
 
   return res
@@ -35,17 +36,23 @@ export const getRooms = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, rooms, "Rooms fetched successfully"));
 });
 
-// --- Search Rooms ---
 export const searchRooms = asyncHandler(async (req, res) => {
-  const { name, type, minCapacity, maxCapacity, features, location } = req.query;
+  const { 
+    name, type, minCapacity, maxCapacity, features, location, hasProjector 
+  } = req.query;
 
   const filter = { isActive: true };
 
   if (name) {
-    filter.name = { $regex: name, $options: "i" }; // case-insensitive search
+    filter.name = { $regex: name, $options: "i" };
   }
 
   if (type) filter.type = type;
+
+  if (hasProjector !== undefined) {
+
+    filter.hasProjector = hasProjector === "true";
+  }
 
   if (minCapacity || maxCapacity) {
     filter.capacity = {};
@@ -54,8 +61,7 @@ export const searchRooms = asyncHandler(async (req, res) => {
   }
 
   if (features) {
-    // features can be comma-separated: "projector,ac"
-    const featureList = features.split(",").map((f) => f.trim());
+    const featureList = features.split(",").map((f) => f.trim().toLowerCase());
     filter.features = { $all: featureList };
   }
 

@@ -181,62 +181,68 @@ export const cancelMyBooking = asyncHandler(async (req, res) => {
 export const getDashboardStats = asyncHandler(async (req, res) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  
+  const tomorrow = new Date(today);
+  tomorrow.setDate(tomorrow.getDate() + 1);
 
   const startOfWeek = new Date(today);
   startOfWeek.setDate(today.getDate() - today.getDay());
 
-  const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  // 1. Booking Counts (Your Old Logic + Week Stats)
+  const totalBookings = await Booking.countDocuments();
+  const pendingBookings = await Booking.countDocuments({ status: "pending" });
+  const approvedBookings = await Booking.countDocuments({ status: "approved" });
+  const rejectedBookings = await Booking.countDocuments({ status: "rejected" });
+  const cancelledBookings = await Booking.countDocuments({ status: "cancelled" });
+  
+  const todayBookingsCount = await Booking.countDocuments({
+    startTime: { $gte: today, $lt: tomorrow },
+  });
+  
+  const weekBookings = await Booking.countDocuments({
+    startTime: { $gte: startOfWeek },
+  });
 
-  // Booking counts by status
-  const statusCounts = await Booking.aggregate([
+  // 2. Room Breakdown (NEW REQUIREMENT: Labs, Halls, etc.)
+  const roomStats = await Room.aggregate([
+    { $match: { isActive: true } },
     {
       $group: {
-        _id: "$status",
+        _id: "$type",
         count: { $sum: 1 },
       },
     },
   ]);
 
-  // Today's bookings
-  const todayBookings = await Booking.countDocuments({
-    startTime: { $gte: today },
-    startTime: { $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000) },
+  const roomTypeCounts = {};
+  roomStats.forEach((r) => {
+    roomTypeCounts[r._id] = r.count;
   });
 
-  // This week's bookings
-  const weekBookings = await Booking.countDocuments({
-    startTime: { $gte: startOfWeek },
+  // 3. Projector Counts (NEW REQUIREMENT)
+  const projectorCount = await Room.countDocuments({ isActive: true, hasProjector: true });
+  const totalRooms = await Room.countDocuments({ isActive: true });
+
+  // 4. Vacant vs Booked Today (NEW REQUIREMENT)
+  const bookedRoomIds = await Booking.distinct("room", {
+    startTime: { $gte: today, $lt: tomorrow },
+    status: { $in: ["approved", "pending"] },
+    resourceType: "Room"
   });
 
-  // This month's bookings
-  const monthBookings = await Booking.countDocuments({
-    startTime: { $gte: startOfMonth },
-  });
+  const bookedCount = bookedRoomIds.length;
+  const vacantCount = totalRooms - bookedCount;
 
-  // Most booked rooms (top 5)
+  // 5. Top Rooms (Keep your old logic, it was good!)
   const topRooms = await Booking.aggregate([
     { $match: { resourceType: "Room" } },
-    {
-      $group: {
-        _id: "$resourceId",
-        totalBookings: { $sum: 1 },
-      },
-    },
+    { $group: { _id: "$room", totalBookings: { $sum: 1 } } },
     { $sort: { totalBookings: -1 } },
     { $limit: 5 },
-    {
-      $lookup: {
-        from: "rooms",
-        localField: "_id",
-        foreignField: "_id",
-        as: "room",
-      },
-    },
+    { $lookup: { from: "rooms", localField: "_id", foreignField: "_id", as: "room" } },
     { $unwind: "$room" },
     {
       $project: {
-        _id: 0,
-        roomId: "$_id",
         roomName: "$room.name",
         location: "$room.location",
         totalBookings: 1,
@@ -244,49 +250,34 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
     },
   ]);
 
-  // Peak hours (group by hour)
-  const peakHours = await Booking.aggregate([
-    {
-      $group: {
-        _id: { $hour: "$startTime" },
-        count: { $sum: 1 },
-      },
+  // 6. Build Final Response
+  const dashboardData = {
+    overview: {
+      total: totalBookings,
+      today: todayBookingsCount,
+      thisWeek: weekBookings,
+      pending: pendingBookings,
+      approved: approvedBookings,
     },
-    { $sort: { count: -1 } },
-    { $limit: 5 },
-    {
-      $project: {
-        _id: 0,
-        hour: "$_id",
-        bookings: "$count",
-      },
+    statusSummary: { // Keep this structure for your frontend
+      pending: pendingBookings,
+      approved: approvedBookings,
+      rejected: rejectedBookings,
+      cancelled: cancelledBookings,
     },
-  ]);
-
-  // Format status counts
-  const statusSummary = {
-    pending: 0,
-    approved: 0,
-    rejected: 0,
-    cancelled: 0,
+    rooms: {
+      total: totalRooms,
+      bookedToday: bookedCount,
+      vacantToday: vacantCount,
+      withProjector: projectorCount,
+      byType: roomTypeCounts, // { lab: 2, lecture_room: 5 }
+    },
+    topRooms: topRooms, // Keep the chart data
   };
-  statusCounts.forEach((s) => {
-    statusSummary[s._id] = s.count;
-  });
 
-  return res.status(200).json(
-    new ApiResponse(200, {
-      overview: {
-        today: todayBookings,
-        thisWeek: weekBookings,
-        thisMonth: monthBookings,
-        total: Object.values(statusSummary).reduce((a, b) => a + b, 0),
-      },
-      statusSummary,
-      topRooms,
-      peakHours,
-    }, "Dashboard stats fetched")
-  );
+  return res
+    .status(200)
+    .json(new ApiResponse(200, dashboardData, "Dashboard stats fetched"));
 });
 
 // --- User's own booking stats ---

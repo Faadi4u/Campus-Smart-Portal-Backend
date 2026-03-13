@@ -10,7 +10,7 @@ const roomSchema = new Schema(
     },
     type: {
       type: String,
-      enum: ["classroom", "lab", "other"],
+      enum: ["classroom", "lab", "lecture_room", "seminar_hall", "meeting_room", "library_hall", "other"],
       default: "classroom",
       lowercase:true
     },
@@ -21,9 +21,12 @@ const roomSchema = new Schema(
     },
     features: {
       type: [String],
-      enum: ["projector" , "ac"], // ["projector", "ac", "whiteboard"]
       default: [],
       lowercase:true
+    },
+     hasProjector: {
+      type: Boolean,
+      default: false,
     },
     location: {
       type: String,
