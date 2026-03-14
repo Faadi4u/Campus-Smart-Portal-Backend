@@ -73,3 +73,45 @@ export const searchRooms = asyncHandler(async (req, res) => {
 
   return res.status(200).json(new ApiResponse(200, rooms, "Rooms fetched"));
 });
+
+export const updateRoom = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, type, capacity, features, location, hasProjector } = req.body;
+
+  const room = await Room.findById(id);
+
+  if (!room) {
+    throw new ApiError(404, "Room not found");
+  }
+
+  room.name = name || room.name;
+  room.type = type || room.type;
+  room.capacity = capacity || room.capacity;
+  room.features = features || room.features;
+  room.location = location || room.location;
+  room.hasProjector = hasProjector !== undefined ? hasProjector : room.hasProjector;
+
+  await room.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, room, "Room updated successfully"));
+});
+
+
+export const deleteRoom = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const room = await Room.findById(id);
+
+  if (!room) {
+    throw new ApiError(404, "Room not found");
+  }
+
+  room.isActive = false;
+  await room.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Room deleted successfully"));
+});
